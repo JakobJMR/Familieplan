@@ -9,7 +9,6 @@
 //  enheten, og ingenting deles med resten av familien.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const firebaseConfig = {
  const firebaseConfig = {
   apiKey: "AIzaSyBSuwNjV4p8nPKngcsomHiWfsufTedQsFQ",
   authDomain: "familieplan-1a857.firebaseapp.com",
