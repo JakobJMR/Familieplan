@@ -10,10 +10,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const firebaseConfig = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+ const firebaseConfig = {
+  apiKey: "AIzaSyBSuwNjV4p8nPKngcsomHiWfsufTedQsFQ",
+  authDomain: "familieplan-1a857.firebaseapp.com",
+  projectId: "familieplan-1a857",
+  storageBucket: "familieplan-1a857.firebasestorage.app",
+  messagingSenderId: "771064273147",
+  appId: "1:771064273147:web:f44276feb6b9f1d476b85e"
 };
