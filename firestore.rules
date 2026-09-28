@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SIKKERHETSREGLER FOR FAMILIENS DASHBORD
+//  Lim inn hele denne teksten i Firebase-konsollen:
+//  Firestore Database → Rules → erstatt alt → Publish.
+//
+//  Bytt ut e-postadressene under med familiens Google-kontoer (små bokstaver).
+//  Bare disse kan lese eller endre noe som helst. Alle andre blir avvist av Google.
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function familie() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in [
+          'mamma@gmail.com',
+          'pappa@gmail.com'
+        ];
+    }
+
+    // Kjente samlinger – alt annet er stengt.
+    match /household/{doc}   { allow read, write: if familie(); }
+    match /secrets/{doc}     { allow read, write: if familie(); }
+    match /events/{id}       { allow read, write: if familie(); }
+    match /tasks/{id}        { allow read, write: if familie(); }
+    match /shopping/{id}     { allow read, write: if familie(); }
+    match /costs/{id}        { allow read, write: if familie(); }
+    match /insurance/{id}    { allow read, write: if familie(); }
+    match /mileage/{id}      { allow read, write: if familie(); }
+    match /meals/{id}        { allow read, write: if familie(); }
+    match /recipes/{id}      { allow read, write: if familie(); }
+    match /lists/{id}        { allow read, write: if familie(); }
+    match /pantry/{id}       { allow read, write: if familie(); }
+    match /rooms/{id}        { allow read, write: if familie(); }
+    match /things/{id}       { allow read, write: if familie(); }
+    match /wines/{id}        { allow read, write: if familie(); }
+    match /products/{id}     { allow read, write: if familie(); }
+    match /stats/{doc}       { allow read, write: if familie(); }
+    match /files/{id} {
+      allow read, write: if familie();
+      match /chunks/{n}      { allow read, write: if familie(); }
+    }
+  }
+}
