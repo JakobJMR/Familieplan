@@ -720,3 +720,67 @@ button.upload { font: inherit; color: inherit; }
 .doc-list li { display: flex; align-items: center; gap: 6px; }
 .shop-line { margin-bottom: 8px; }
 .shop-emojis-inline { font-size: 1.3rem; letter-spacing: 2px; }
+
+/* Gjøremål: søk, stikkord og notater */
+.task-search { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.task-search input {
+  flex: 1; min-width: 0; min-height: 48px; font-size: 1rem;
+  border-radius: 999px; padding-left: 18px;
+}
+.task-search input::-webkit-search-cancel-button { display: none; }
+.task-search .btn { min-width: 48px; min-height: 48px; padding: 0; font-size: 1.1rem; }
+
+.tag-bar { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-bottom: 10px; padding-bottom: 2px; }
+.tag-bar::-webkit-scrollbar { display: none; }
+.tag-bar .chip { flex: 0 0 auto; }
+@media (min-width: 760px) { .tag-bar { flex-wrap: wrap; overflow: visible; } }
+
+.tasks-actions { margin-bottom: 2px; }
+
+/* Tittelen kan nå ha utdrag og stikkord under seg */
+.task-row .task-main { align-items: flex-start; }
+.task-row .pe { line-height: 1.5; }
+.task-row .pt { display: flex; flex-direction: column; gap: 2px; }
+.task-note { font-weight: 500; color: var(--ink-2); font-size: .85rem; overflow-wrap: anywhere; }
+.row-tags { font-weight: 500; color: var(--ink-3); font-size: .78rem; }
+
+/* Notatrader: ingen avkryssing, dempet markør i stedet */
+.note-mark { width: 26px; text-align: center; font-size: 1.1rem; opacity: .65; flex: 0 0 auto; }
+.task-section.notes .section-title { color: var(--ink-2); }
+.note-row { background: var(--surface-2); }
+
+/* Velger for oppgave/notat i skjemaet */
+.kind-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.tag-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 14px; }
+.form textarea { resize: vertical; min-height: 92px; }
+
+/* Forsikring: samlet oversikt over dekning og egenandeler */
+.btn.wide { display: block; width: 100%; text-align: center; margin-bottom: 12px; }
+
+.ovw-table { display: flex; flex-direction: column; gap: 8px; }
+.ovw-head { display: none; }
+.ovw-row {
+  display: grid; grid-template-columns: 1fr; gap: 4px;
+  background: var(--surface); border-radius: var(--radius-s); box-shadow: var(--shadow);
+  padding: 12px 14px; color: inherit; text-decoration: none;
+}
+.ovw-name { font-weight: 600; }
+.ovw-name small { display: block; font-weight: 500; color: var(--ink-3); font-size: .82rem; }
+.ovw-row > span[data-label] { font-size: .9rem; color: var(--ink-2); }
+.ovw-row > span[data-label]::before {
+  content: attr(data-label) ": "; color: var(--ink-3); font-weight: 600; font-size: .82rem;
+}
+.ovw-ded { font-weight: 600; color: var(--ink) !important; overflow-wrap: anywhere; }
+.ovw-ded.missing { font-weight: 500; color: var(--ink-3) !important; font-style: italic; }
+
+@media (min-width: 760px) {
+  .ovw-head, .ovw-row { grid-template-columns: 2fr 2fr 1fr 1fr; gap: 12px; align-items: baseline; }
+  .ovw-head { display: grid; padding: 0 14px 4px; font-size: .82rem; font-weight: 600; color: var(--ink-3); }
+  .ovw-row > span[data-label]::before { content: none; }
+}
+
+.ovw-ded-line { margin: 0 0 10px; font-size: .95rem; }
+.ovw-hit { margin-bottom: 10px; }
+.ovw-hit .card-title { margin-bottom: 8px; }
+.ovw-gaps { margin-top: 18px; }
+.ovw-gap-list { color: var(--ink-2); line-height: 1.9; }

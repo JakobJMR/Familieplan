@@ -107,7 +107,9 @@ export function yearsSince(ev, s) {
 
 export function taskBuckets(tasks, memberId = null) {
   const t = today();
-  const open = tasks.filter((x) => !x.done && involves(x, memberId));
+  // Notater (kind: 'notat') er oppslag, ikke gjøremål: de skal aldri telle som
+  // åpne, over fristen eller vises i varselboksen. Mangler feltet = vanlig oppgave.
+  const open = tasks.filter((x) => !x.done && x.kind !== 'notat' && involves(x, memberId));
   return {
     open,
     overdue: open.filter((x) => x.due && x.due < t),

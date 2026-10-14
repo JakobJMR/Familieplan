@@ -2,7 +2,7 @@
 // Bare appens egne filer caches. Data fra Firebase, Gemini, Yr osv. går alltid direkte.
 // Øk VERSION når du endrer filer, så alle enheter får den nye versjonen.
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = `familie-${VERSION}`;
 const SHELL = [
   './', './index.html', './css/app.css', './manifest.webmanifest', './icons/icon-192.png',

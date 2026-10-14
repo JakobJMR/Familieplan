@@ -9,6 +9,7 @@ import { readOnce, SCHEMAS, loadText, askFromTexts } from '../docs.js';
 import { kr, insEmoji, INS_TYPES, nextRenewal, insuranceMonthly, mileageStatus } from '../finance.js';
 
 const chat = []; // {q, a} – bare i minnet på denne enheten
+let ovwQuery = ''; // søk i dekningsoversikten
 
 const policies = () => [...state.insurance].sort((a, b) => (nextRenewal(a) || '9').localeCompare(nextRenewal(b) || '9'));
 const logsFor = (id) => state.mileage.filter((l) => l.policyId === id);
@@ -16,6 +17,7 @@ const logsFor = (id) => state.mileage.filter((l) => l.policyId === id);
 // ───────────── Oversikt ─────────────
 
 export function renderInsurance(param) {
+  if (param === 'oversikt') return renderOverview();
   if (param) {
     const p = state.insurance.find((x) => x.id === param);
     if (p) return renderDetail(p);
@@ -29,10 +31,123 @@ export function renderInsurance(param) {
     <div class="card stat"><span class="stat-label">Totalt per år</span><span class="stat-num">${kr(perYear)}</span><span class="stat-sub">${kr(perYear / 12)} per måned</span></div>
     <div class="card stat"><span class="stat-label">Antall forsikringer</span><span class="stat-num">${list.length}</span><span class="stat-sub">${list.filter((p) => p.fileId).length} med dokument</span></div>
   </div>` : ''}
+  ${list.length ? '<a class="btn soft wide" href="#/forsikring/oversikt">📊 Dekning og egenandeler – samlet oversikt</a>' : ''}
   ${list.length
     ? `<ul class="ins-list">${list.map(card).join('')}</ul>`
     : emptyState('🛡️', 'Ingen forsikringer ennå', hasAI() ? 'Last opp forsikringsbeviset (PDF eller bilde), så leser Gemini det for deg.' : 'Legg inn forsikringene dine. Med en Gemini-nøkkel kan appen lese dokumentene for deg.')}
   ${list.length ? chatBox() : ''}`;
+}
+
+// ───────────── Samlet oversikt: dekning og egenandeler ─────────────
+
+/** Alt som er søkbart på én forsikring, som én tekst. */
+const covText = (p) =>
+  [p.name, p.company, p.insured, p.deductible, p.summary, ...(p.covers || []), ...(p.notCovered || []), ...(p.keyTerms || [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+/** Linjene som faktisk treffer søket, så man ser hvorfor forsikringen er med. */
+const hitLines = (p, terms) => {
+  const pick = (arr = []) => arr.filter((l) => terms.some((t) => l.toLowerCase().includes(t)));
+  return { covers: pick(p.covers), notCovered: pick(p.notCovered), keyTerms: pick(p.keyTerms) };
+};
+
+function ovwRow(p) {
+  const r = nextRenewal(p);
+  return `<a class="ovw-row" href="#/forsikring/${esc(p.id)}">
+    <span class="ovw-name">${insEmoji(p.type)} ${esc(p.name)}${p.company ? `<small>${esc(p.company)}</small>` : ''}</span>
+    <span class="ovw-ded ${p.deductible ? '' : 'missing'}" data-label="Egenandel">${esc(p.deductible || 'ikke registrert')}</span>
+    <span data-label="Fornyes">${r ? fmtShort(r) : '–'}</span>
+    <span data-label="Pris">${p.pricePerYear ? kr(p.pricePerYear) + '/år' : p.pricePerMonth ? kr(p.pricePerMonth) + '/mnd' : '–'}</span>
+  </a>`;
+}
+
+function covBlock(p) {
+  const li = (arr, cls) => (arr?.length ? `<ul class="bullets ${cls}">${arr.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+  const empty = !p.covers?.length && !p.notCovered?.length;
+  return `<details class="card settings-section">
+    <summary><span>${insEmoji(p.type)} ${esc(p.name)}</span><span class="chev">›</span></summary>
+    <div class="sec-body">
+      <p class="ovw-ded-line">💰 <b>Egenandel:</b> ${esc(p.deductible || 'ikke registrert')}</p>
+      ${p.summary ? `<p class="muted">${esc(p.summary)}</p>` : ''}
+      ${li(p.covers, 'yes')}
+      ${li(p.notCovered, 'no')}
+      ${empty ? `<p class="hint">Ingen dekningspunkter registrert.${hasAI() && p.fileId ? ' Åpne forsikringen og la AI lese dokumentet.' : ''}</p>` : ''}
+      <a class="btn ghost small" href="#/forsikring/${esc(p.id)}">Åpne forsikringen ›</a>
+    </div>
+  </details>`;
+}
+
+function renderOverview() {
+  const list = policies();
+  const terms = ovwQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const perYear = list.reduce((s, p) => s + insuranceMonthly(p) * 12, 0);
+  const noDed = list.filter((p) => !p.deductible).length;
+  const haveTypes = new Set(list.map((p) => p.type));
+  const gaps = Object.keys(INS_TYPES).filter((t) => t !== 'annet' && !haveTypes.has(t));
+
+  const head = `
+  <header class="view-head"><div><a href="#/forsikring" class="back-link">‹ Forsikring</a>
+    <h1>📊 Dekning og egenandeler</h1><p class="muted">Alt på ett sted – ${list.length} ${list.length === 1 ? 'forsikring' : 'forsikringer'}</p></div></header>
+  <div class="task-search">
+    <input id="ovw-q" type="search" value="${esc(ovwQuery)}" placeholder="🔍 Hva er jeg dekket for? F.eks. «ufør» eller «vannskade»" autocomplete="off" enterkeyhint="search">
+    ${ovwQuery ? '<button class="btn ghost small" data-clear-ovw aria-label="Tøm søk">✕</button>' : ''}
+  </div>`;
+
+  if (!list.length) return `${head}${emptyState('🛡️', 'Ingen forsikringer ennå', 'Legg inn forsikringene dine først.')}`;
+
+  if (terms.length) {
+    const hits = list.filter((p) => terms.every((t) => covText(p).includes(t)));
+    return `${head}
+    ${
+      hits.length
+        ? `<p class="hint">${hits.length} av ${list.length} forsikringer nevner dette.</p>
+           ${hits
+             .map((p) => {
+               const h = hitLines(p, terms);
+               const li = (arr, cls) =>
+                 arr.length ? `<ul class="bullets ${cls}">${arr.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+               const none = !h.covers.length && !h.notCovered.length && !h.keyTerms.length;
+               return `<section class="card pad ovw-hit">
+                 <h2 class="card-title">${insEmoji(p.type)} ${esc(p.name)}</h2>
+                 <p class="ovw-ded-line">💰 <b>Egenandel:</b> ${esc(p.deductible || 'ikke registrert')}</p>
+                 ${li(h.covers, 'yes')}
+                 ${li(h.notCovered, 'no')}
+                 ${li(h.keyTerms, '')}
+                 ${none ? '<p class="hint">Treff i navn, selskap eller sammendrag – ikke i dekningslistene.</p>' : ''}
+                 <a class="btn ghost small" href="#/forsikring/${esc(p.id)}">Åpne forsikringen ›</a>
+               </section>`;
+             })
+             .join('')}`
+        : emptyState('🔍', 'Ingen treff', 'Ordene finnes ikke i det som er registrert. Prøv et annet ord, eller spør AI-en i chatten under Forsikring – den leser hele dokumentene.')
+    }
+    <p class="hint">⚠️ Søket leter bare i det som er registrert i appen, ikke i hele vilkårsdokumentet. Er du i tvil, åpne originaldokumentet.</p>`;
+  }
+
+  return `${head}
+  <div class="stat-row">
+    <div class="card stat"><span class="stat-label">Totalt per år</span><span class="stat-num">${kr(perYear)}</span><span class="stat-sub">${kr(perYear / 12)} per måned</span></div>
+    <div class="card stat"><span class="stat-label">Uten egenandel</span><span class="stat-num">${noDed}</span><span class="stat-sub">${noDed ? 'mangler registrering' : 'alle er registrert'}</span></div>
+  </div>
+
+  <h2 class="section-title">💰 Egenandeler</h2>
+  <div class="ovw-table">
+    <div class="ovw-head"><span>Forsikring</span><span>Egenandel</span><span>Fornyes</span><span>Pris</span></div>
+    ${list.map(ovwRow).join('')}
+  </div>
+
+  <h2 class="section-title">🛡️ Hva som dekkes</h2>
+  <p class="hint">Trykk på en forsikring for å se punktene.</p>
+  ${list.map(covBlock).join('')}
+
+  ${
+    gaps.length
+      ? `<section class="card pad ovw-gaps"><h2 class="card-title">Ikke registrert i appen</h2>
+           <p class="ovw-gap-list">${gaps.map((t) => `${INS_TYPES[t]} ${esc(t)}`).join(' · ')}</p>
+           <p class="hint">Dette betyr ikke at du mangler dem – bare at de ikke ligger her. Flere kan også være dekket gjennom jobb, kredittkort eller borettslag.</p></section>`
+      : ''
+  }`;
 }
 
 function card(p) {
@@ -62,6 +177,24 @@ function chatBox() {
 
 export function bindInsurance(root, rerender, param) {
   root.querySelector('[data-add-ins]')?.addEventListener('click', addFlow);
+
+  // Søk i dekningsoversikten
+  const oq = root.querySelector('#ovw-q');
+  if (oq) {
+    if (ovwQuery) {
+      oq.focus();
+      oq.setSelectionRange(oq.value.length, oq.value.length);
+    }
+    let ovwTimer;
+    oq.addEventListener('input', () => {
+      clearTimeout(ovwTimer);
+      ovwTimer = setTimeout(() => {
+        ovwQuery = oq.value;
+        rerender();
+      }, 200);
+    });
+  }
+  root.querySelector('[data-clear-ovw]')?.addEventListener('click', () => ((ovwQuery = ''), rerender()));
   const form = root.querySelector('.chat-form');
   if (form) {
     form.onsubmit = async (e) => {
