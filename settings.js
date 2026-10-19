@@ -4,6 +4,7 @@ import { esc, toast, DAY_NAMES } from '../util.js';
 import { state, saveHousehold, saveSecrets, COLLECTIONS } from '../store.js';
 import { backend, isDemo } from '../backend.js';
 import { setPin, hasPin } from '../pin.js';
+import { pushState, enablePush, disablePush } from '../push.js';
 import { DEFAULT_MODEL, testKey } from '../ai.js';
 import {
   emptyHousehold, membersEditor, schedulesEditor, garbageEditor, holidaysEditor, placeEditor, bindEditors, validateDraft,
@@ -79,6 +80,11 @@ export function renderSettings() {
         ${hasPin() ? '<button class="btn danger ghost" id="pin-del">Fjern kode</button>' : ''}
       </div>
     </div>
+  </details>
+
+  <details class="card settings-section" data-static="push">
+    <summary><span>🔔 Kveldsvarsel</span><span class="chev">›</span></summary>
+    <div class="sec-body" data-push-box><p class="muted">Sjekker …</p></div>
   </details>
 
   <section class="card pad account">
@@ -190,4 +196,47 @@ export function bindSettings(root, rerender, onSignOut) {
     await backend.signOut();
     onSignOut?.();
   };
+
+  const pushBox = root.querySelector('[data-push-box]');
+  if (pushBox) paintPushBox(pushBox);
+}
+
+// ───────────── Kveldsvarsel ─────────────
+// Egen enhet, egen påmelding: et varselabonnement hører til nettleseren, ikke kontoen.
+
+async function paintPushBox(box) {
+  const st = await pushState();
+  const intro = '<p class="muted">Én melding hver kveld kl. 20 om morgendagen: søppeltømming, avtaler og oppgaver med frist.</p>';
+
+  const views = {
+    'ikke-satt-opp': `${intro}<p class="hint">Varsler er ikke satt opp for denne appen ennå (VAPID-nøkkelen mangler i <code>js/config.js</code>).</p>`,
+    'ikke-stottet': `${intro}<p class="hint">Denne nettleseren støtter ikke varsler. Prøv Chrome på Android, eller Safari på iPhone med appen lagt til hjemskjermen.</p>`,
+    'krever-hjemskjerm': `${intro}<p class="hint">📱 På iPhone og iPad må appen ligge på hjemskjermen før den kan sende varsler. Trykk Del-ikonet i Safari → «Legg til på Hjem-skjerm», åpne appen derfra, og kom tilbake hit.</p>`,
+    nektet: `${intro}<p class="hint">Varsler er blokkert for denne siden. Du må skru dem på igjen i nettleserinnstillingene – appen kan ikke spørre på nytt.</p>`,
+    av: `${intro}<div class="row-btns"><button class="btn primary" data-push-on>🔔 Slå på varsler på denne enheten</button></div>
+         <p class="hint">Hver enhet må skrus på for seg.</p>`,
+    pa: `${intro}<p class="hint ok">✅ Varsler er på for denne enheten.</p>
+         <div class="row-btns"><button class="btn danger ghost" data-push-off>Slå av her</button></div>`,
+  };
+  box.innerHTML = views[st] || views['ikke-stottet'];
+
+  box.querySelector('[data-push-on]')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true;
+    b.textContent = 'Melder på …';
+    try {
+      await enablePush();
+      toast('🔔 Varsler er på for denne enheten.', 'ok');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+    paintPushBox(box);
+  });
+
+  box.querySelector('[data-push-off]')?.addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    await disablePush();
+    toast('Varsler er slått av på denne enheten.');
+    paintPushBox(box);
+  });
 }

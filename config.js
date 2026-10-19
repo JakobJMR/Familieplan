@@ -10,10 +10,21 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const firebaseConfig = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+  apiKey: 'AIzaSyBSuwNjV4p8nPKngcsomHiWfsufTedQsFQ',
+  authDomain: 'familieplan-1a857.firebaseapp.com',
+  projectId: 'familieplan-1a857',
+  storageBucket: 'familieplan-1a857.firebasestorage.app',
+  messagingSenderId: '771064273147',
+  appId: '1:771064273147:web:f44276feb6b9f1d476b85e',
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  KVELDSVARSEL – offentlig VAPID-nøkkel.
+//
+//  Denne er IKKE hemmelig; den hører sammen med en privat nøkkel som bare
+//  sende-jobben har. Nøkkelparet ligger i varsel-repoet (se README der).
+//
+//  Er den tom, skjuler appen varselvalget helt.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const vapidPublicKey = 'BC3qxGEcaygaG8NmrglJi2rNj3CvXOjCTdLFn_kvbMJdivLAFqepI0NhEBkxPsLz0XsmbtwZ8yXPKBPpNd_jeTg';

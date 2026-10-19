@@ -2,11 +2,11 @@
 // Bare appens egne filer caches. Data fra Firebase, Gemini, Yr osv. går alltid direkte.
 // Øk VERSION når du endrer filer, så alle enheter får den nye versjonen.
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = `familie-${VERSION}`;
 const SHELL = [
   './', './index.html', './css/app.css', './manifest.webmanifest', './icons/icon-192.png',
-  './js/app.js', './js/config.js', './js/backend.js', './js/store.js', './js/util.js', './js/logic.js', './js/finance.js',
+  './js/app.js', './js/config.js', './js/backend.js', './js/store.js', './js/util.js', './js/logic.js', './js/finance.js', './js/push.js',
   './js/ai.js', './js/ai-extra.js', './js/docs.js', './js/media.js', './js/shoplists.js', './js/pin.js', './js/vendor/extras.js', './js/emoji.js', './js/components.js', './js/vendor/firebase.js',
   './js/views/assistant.js', './js/views/calendar.js', './js/views/dashboard.js', './js/views/economy.js', './js/views/editors.js',
   './js/views/food.js', './js/views/house.js', './js/views/wine.js', './js/views/products.js', './js/views/pantry.js', './js/views/gate.js', './js/views/insurance.js', './js/views/meals.js', './js/views/more.js',
@@ -22,6 +22,46 @@ self.addEventListener('activate', (e) => {
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
+  );
+});
+
+// ───────────── Kveldsvarsel (Web Push) ─────────────
+// Meldingen sendes av den planlagte jobben. Her vises den bare.
+
+self.addEventListener('push', (e) => {
+  let d = {};
+  try {
+    d = e.data ? e.data.json() : {};
+  } catch {
+    d = { body: e.data ? e.data.text() : '' };
+  }
+  e.waitUntil(
+    self.registration.showNotification(d.title || '👪 Familien', {
+      body: d.body || '',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      lang: 'nb',
+      tag: d.tag || 'kveldsvarsel', // samme tag erstatter forrige, så det hoper seg ikke opp
+      renotify: true,
+      data: { url: d.url || './' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const target = new URL(e.notification.data?.url || './', self.registration.scope).href;
+  e.waitUntil(
+    (async () => {
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const c of wins) {
+        if (!c.url.startsWith(self.registration.scope)) continue;
+        await c.focus();
+        if ('navigate' in c) await c.navigate(target).catch(() => {});
+        return;
+      }
+      await self.clients.openWindow(target);
+    })(),
   );
 });
 

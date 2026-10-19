@@ -39,6 +39,7 @@ service cloud.firestore {
     match /wines/{id}        { allow read, write: if familie(); }
     match /products/{id}     { allow read, write: if familie(); }
     match /stats/{doc}       { allow read, write: if familie(); }
+    match /pushsubs/{id}     { allow read, write: if familie(); }
     match /files/{id} {
       allow read, write: if familie();
       match /chunks/{n}      { allow read, write: if familie(); }
