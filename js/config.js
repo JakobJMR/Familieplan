@@ -17,3 +17,14 @@ export const firebaseConfig = {
   messagingSenderId: '771064273147',
   appId: '1:771064273147:web:f44276feb6b9f1d476b85e',
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  KVELDSVARSEL – offentlig VAPID-nøkkel.
+//
+//  Denne er IKKE hemmelig; den hører sammen med en privat nøkkel som bare
+//  sende-jobben har. Nøkkelparet ligger i varsel-repoet (se README der).
+//
+//  Er den tom, skjuler appen varselvalget helt.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const vapidPublicKey = 'BC3qxGEcaygaG8NmrglJi2rNj3CvXOjCTdLFn_kvbMJdivLAFqepI0NhEBkxPsLz0XsmbtwZ8yXPKBPpNd_jeTg';
